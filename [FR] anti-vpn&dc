@@ -1,0 +1,185 @@
+options:
+	msgToManyIPs: &cVous vous êtes connecter sur 3 (ou +) IP différentes%nl%&csi vous pensez que ceci est une erreur, créer un ticket sur &3&odiscord.server.fr
+	ApiKey: 863I26-6e450a-6I3160-772fk1
+
+
+on load:
+	set {APIKEYREQUEST} to "863I26-6e450a-6I3160-772fk1"
+on first join:
+	set {security::ip::%player's uuid%} to player's ip
+
+
+
+command /getips <text>:
+	trigger:
+		if arg-1 is "all":
+			loop {security::ip::*}:
+				send "&c%loop-index% &b%loop-value%"
+		if arg-1 is "double":
+			loop {security::double_ip::*}:
+				send "&2%loop-index% &3%loop-value%"
+
+
+on connect:
+	if {security::ip::%player's uuid%} != player's ip:
+		add player's ip to {security::double_ip::%player's uuid%}
+		if {security::double_ip::%player's uuid%} >= 3:
+			kick player due to "{@msgToManyIPs}"
+		else:
+			send "§c[Staff] §7» &c%player% &fs'est connecter avec une adresse IP différente <tooltip:&fNombres d'ip enregistrer §7» &c%player% &b[%size of {security::doubleip::%player's uuid%::*}%] >&6[%size of {security::doubleip::%player's uuid%::*}%]<reset>]" to all players where [player input has permission "perm.admin"]
+			send "§c[Staff] §7» &a%player's ip% [ON]&7, &c%{security::ip::%player's uuid%}% [OFF]" to all players where [player input has permission "perm.admin"]		
+
+
+
+command /check [<text>] [<player>]:
+	permission: perm.check
+	permission message: &cVous n'avez pas accès à cette commande &4(Modo+)
+	trigger:
+		if arg-1 is not set:
+			arg-2 is not set
+			message "&7--"
+			message "&7» &f/check &b<dc> &c<joueur> &7- Voir si un joueurs a des doubles comptes"
+			message "&7» &f/check &b<vpn> &c<joueur> &7- Voir si un joueur est connecté appartir d'un VPN ou Proxy"
+			message "&7» &c&oLe système de VPN / Proxy peux bugguer par fois !"
+			message "&7--"
+		if arg-1 is "dc":
+			if arg-2 is set:
+				set {_ip} to arg-2's ip
+				loop all players:
+					set {_ip2} to loop-player's ip
+					if {_ip2} = {_ip}:
+						add loop-player to {_ips::%{_ip}%}
+						if size of {_ips::%{_ip}%::*} is greater than 1:
+							delete {_players::*}
+							loop {_ips::%{_ip}%::*}:
+								add loop-value-2 parsed as offline player to {_players::*}
+								loop {_players::*}:
+									if loop-value-3 is online:
+										add loop-value-3 to {_ponline::*}
+									else:
+										add loop-value-3 to {_poffline::*}
+									send "&c[Staff] &7» &fIl y'a &c%size of {_players::*}% &fcomptes sur l'adresse IP &b%{_ip}%"
+									send "&c[Staff] &7» %{_players::*}% | &a%{_ponline::*}% &c%{_poffline::*}%"
+						else:
+							send "&c[Staff] &7» &aCe joueur n'a aucun doubles comptes sur son IP actuel !"
+							send "&c[Staff] &7» &fCe joueur a &b%size of {security::doubleip::%player's uuid%::*}% &fadresse IP différentes"
+			else:
+				send "&c[Staff] &7» &cMerci de préciser un joueur !"
+
+		if arg-1 is "vpnalert":
+			if arg-2 is set:
+				send "&c[Staff] &7» &e[VPN/PROXY] > &c%arg-2% &fpar &b%player%" to all players where [player input has permission "perm.modo+"]
+		if arg-1 is "vpn":
+			# send request to "http://check.getipintel.net/check.php?ip=185.99.3.107&contact=unemail@gmail.com"
+			# send request to "http://api.stopforumspam.org/api?ip=185.99.3.107"
+			if arg-2 is set:
+				#set {_res} to text from "https://proxycheck.io/v2/%{_ip}%?key={@ApiKey}&vpn=1"
+				set {_ip} to arg-2's ip
+				send a "get" request to uncolored "https://proxycheck.io/v2/%{_ip}%?key=%{APIKEYREQUEST}%&vpn=1"
+				set {_resp} to the last http response
+				set {_body} to {_resp}'s body
+				copy json {_body} to {_json::*}
+				if {_json::%{_ip}%::proxy} is "yes":
+					if {_json::%{_ip}%::type} is "VPN":
+						set {_using} to "VPN"
+		
+					else if {_json::%{_ip}%::type} is "SOCKS5":
+						set {_using} to "Proxy (SOCKS5)"
+																							
+
+					else if {_json::%{_ip}%::type} is "SOCKS4":
+						set {_using} to "Proxy (SOCKS4)"
+																					
+									
+					else if {_json::%{_ip}%::type} is "SOCKS":
+						set {_using} to "Proxy (SOCKS)"
+				
+																		
+					else if {_json::%{_ip}%::type} is "TOR":
+						set {_using} to "TOR"
+																							
+																		
+					else if {_json::%{_ip}%::type} is "Shadowsocks":
+						set {_using} to "Shadowsocks"
+																								
+																											
+					else if {_json::%{_ip}%::type} is "HTTP":
+						set {_using} to "Proxy (HTTP)"
+																							
+																		
+					else if {_json::%{_ip}%::type} is "HTTPS":
+						set {_using} to "Proxy (HTTPS)"
+				
+																							
+					else if {_json::%{_ip}%::type} is "Compromised Server":
+						set {_using} to "Compromised Server"
+																							
+																																											
+					else if {_json::%{_ip}%::type} is "Inference Engine":
+						set {_using} to "Inference Engine"
+																							
+																																											
+					else if {_json::%{_ip}%::type} is "OpenVPN":
+													
+						set {_using} to "OpenVPN"
+				else if {_json::%{_ip}%::proxy} is "no":
+					set {_using} to "Aucun"	
+				send "&c[Staff] &7» &fEn attente d'une réponse ..."
+				wait 2 seconds
+				if {_using} is not "Aucun":
+					send "&7--"
+					send "&7» &fJoueur: &b&l%arg-2%"
+					send "&7» &fCheck ⌗1 : &a✔ &e[%{_using}%]" 
+					if player has permission "perm.modo+":
+						send "&7» &fAdresse IP vérifier: &c%arg-2's ip%"
+						send "   <command:/ss %arg-2% %{_using}%><tooltip:&fSanctionner ce joueur &6(Kick)>&c[Sanctionner]<reset>  &7-  <command:/check vpn %arg-2% 2><tooltip:&7Recheck sur une autre API ⌗2>&b[CHECK ⌗2]<reset>"
+					else:
+						send "   <command:/check vpnalert %arg-2%><tooltip:&fSignaler ce joueur à un &cModo+, &4Admin>&b[Signaler à un haut staff]<reset>"
+					send "&7--"
+				else if {_using} is "Aucun":
+					send "&7--"
+					send "&7» &fJoueur: &b&l%arg-2%"
+					send "&7» &fCheck ⌗1 : &cAucun" 
+					if player has permission "perm.modo+":
+						send "&7» &fAdresse IP vérifier: &c%arg-2's ip%"
+					send "   <command:/check vpn %arg-2% 2><tooltip:&7Recheck sur une autre API ⌗2>&b[CHECK ⌗2]<reset>"
+					send "&7--"
+#§unecommandenonexecutablevpn§
+command /vpncheck2 <number> <player>:
+	permission: perm.modo+
+	trigger:
+		if arg-1 is 2:
+			if arg-2 is set:
+				set {_ip} to arg-2' ip
+				send a "get" request to uncolored "http://check.getipintel.net/check.php?ip=%arg-2's ip%&&rcontact=eaglezledozo@gmail.com&&rformat=json&&rflags=m"
+				set {_resp} to the last http response
+				set {_body} to {_resp}'s body
+				send "%{_resp}%" to console
+				send "%{_body}%" to console
+				copy json {_body} to {_json::*}
+				if {_json::%{_ip}%::status} is "success":			
+					if {_json::%{_ip}%::result} is -3:
+						message "&c[Staff] &7» &cCette adresse IP est privée !"
+					else if {_json::%{_ip}%::result} is -5:
+						message "&c[Staff] &7» &fCeci est un &cerreur&f lié à notre API, contactez un &cadministrateur&f au plus vite !"
+					else if {_json::%{_ip}%::result} is 1:
+						set {_result2} to "Oui"
+					else if {_json::%{_ip}%::result} is 0:
+						set {_result2} to "Non"
+				send "&c[Staff] &7» &fEn attente d'une réponse ..."
+				wait 2 seconds
+				if {_result2} is "Non":
+					send "&7--"
+					send "&7» &fJoueur: &b&l%arg-2%"
+					send "&7» &fCheck ⌗2 : &cAucun" 
+					if player has permission "perm.modo+":
+						send "&7» &fAdresse IP vérifier: &c%arg-2's ip%"
+					send "&7--"
+				else if {_result2} is "Oui":
+					send "&7--"
+					send "&7» &fJoueur: &b&l%arg-2%"
+					send "&7» &fCheck ⌗2 : &a✔ &e(Détecter)" 
+					if player has permission "perm.modo+":
+						send "&7» &fAdresse IP vérifier: &c%arg-2's ip%"
+						send "   <command:/ss %arg-2% %{_using}%><tooltip:&fSanctionner ce joueur &6(Kick)>&c[Sanctionner]<reset>"				
+
